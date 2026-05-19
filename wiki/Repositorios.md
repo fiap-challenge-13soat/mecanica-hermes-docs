@@ -2,7 +2,7 @@
 
 > **Rótulo:** Referência
 > **TL;DR:** Os 9 repositórios do ecossistema Mecânica Hermes, em uma tabela.
-> **Última revisão:** 2026-05-18
+> **Última revisão:** 2026-05-19
 
 ## Tabela mestre
 

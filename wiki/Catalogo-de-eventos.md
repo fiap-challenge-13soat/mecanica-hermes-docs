@@ -1,12 +1,12 @@
 # Catálogo de eventos `.v1`
 
 > **Rótulo:** Referência
-> **TL;DR:** Os **7 contratos** de eventos que circulam pelo RabbitMQ entre OS, Cadastros e Pagamentos. Esta é a página **canonica** — toda mudança passa por aqui primeiro.
-> **Última revisão:** 2026-05-18
+> **TL;DR:** Os **8 contratos** de eventos que circulam pelo RabbitMQ entre OS, Cadastros e Pagamentos. Esta é a página **canônica** — toda mudança passa por aqui primeiro.
+> **Última revisão:** 2026-05-19
 
 ## Resumo
 
-7 eventos versionados via `[EntityName(".v1")]` (kebab-case). Os contratos vivem no pacote NuGet **`Mecanica.Hermes.Contracts`** ([SDK — Visão dos 6 pacotes](SDK-Visao-dos-6-pacotes)) e são consumidos pelos 3 serviços.
+8 eventos versionados via `[EntityName(".v1")]` (kebab-case). Os contratos vivem no pacote NuGet **`Mecanica.Hermes.Contracts`** (SDK v1.1.0 — ver [SDK — Visão dos 6 pacotes](SDK-Visao-dos-6-pacotes)) e são consumidos pelos 3 serviços.
 
 ## Tabela canônica
 
@@ -16,6 +16,7 @@
 | `orcamento-aprovado-pelo-cliente.v1` | **Cadastros** | OS | Cliente clicou em "aprovar" no webhook |
 | `orcamento-rejeitado-pelo-cliente.v1` | **Cadastros** | OS | Cliente clicou em "rejeitar" no webhook |
 | `ordem-de-servico.aguardando-pagamento.v1` | **OS** | Pagamentos | OS entra em `AguardandoPagamento` (saída de `ManutencaoFinalizada`) |
+| `ordem-de-servico.cancelada.v1` | **OS** | Pagamentos | OS é cancelada — Pagamentos recusa/cancela pagamentos pendentes vinculados |
 | `link-pagamento-gerado.v1` | **Pagamentos** | OS, Cadastros | Pagamento gerou link no MP (Cadastros envia e-mail; OS guarda link) |
 | `pagamento.confirmado.v1` | **Pagamentos** | OS | Webhook ou polling confirmaram pagamento aprovado |
 | `pagamento.recusado.v1` | **Pagamentos** | OS | Pagamento foi recusado ou expirou |
@@ -46,11 +47,16 @@ sequenceDiagram
   Cli->>MP: paga
   MP-->>Pag: webhook HMAC
   Pag-->>OS: pagamento.confirmado.v1
+
+  Note over Atend,OS: Cenário alternativo: cancelamento em AwP
+  Atend->>OS: cancelar OS em AguardandoPagamento
+  OS-->>Pag: ordem-de-servico.cancelada.v1
+  Pag-->>OS: pagamento.recusado.v1
 ```
 
 ## Schema de cada evento
 
-Os records estão em `Mecanica.Hermes.Contracts/IntegrationEvents/` no SDK. Exemplo:
+Os records estão em `Mecanica.Hermes.Contracts/Integration/` no SDK. Exemplos:
 
 ```csharp
 [EntityName("ordem-de-servico.aguardando-aprovacao.v1")]
@@ -58,6 +64,12 @@ public record OrdemDeServicoAguardandoAprovacaoEvent(
     Guid OrdemDeServicoId,
     Guid ClienteId,
     decimal ValorTotal,
+    DateTime OcorridoEm);
+
+[EntityName("ordem-de-servico.cancelada.v1")]
+public sealed record OrdemDeServicoCanceladaEvent(
+    Guid OrdemDeServicoId,
+    string StatusAnterior,
     DateTime OcorridoEm);
 ```
 
@@ -95,13 +107,14 @@ ordem-de-servico-aguardando-aprovacao-event-consumer (Cadastros)
 orcamento-aprovado-pelo-cliente-event-consumer (OS)
 link-pagamento-gerado-event-consumer (OS)
 link-pagamento-gerado-event-consumer (Cadastros)  ← nome único por serviço
+ordem-de-servico-cancelada-event-consumer (Pagamentos)
 ```
 
 Ver [Filas, retry, redelivery](Filas-retry-redelivery) para a política padrão.
 
 ## Validar este catálogo
 
-A suíte E2E valida indiretamente os 7 eventos:
+A suíte E2E valida indiretamente os 8 eventos:
 
 | Evento | Validado em |
 |---|---|
@@ -109,9 +122,10 @@ A suíte E2E valida indiretamente os 7 eventos:
 | `orcamento-aprovado-pelo-cliente.v1` | suite 01, 02, 04 |
 | `orcamento-rejeitado-pelo-cliente.v1` | suite 03 |
 | `ordem-de-servico.aguardando-pagamento.v1` | suite 01, 02 |
+| `ordem-de-servico.cancelada.v1` | suite 08 |
 | `link-pagamento-gerado.v1` | suite 01, 02 |
 | `pagamento.confirmado.v1` | suite 01, 02 (2º pagamento) |
-| `pagamento.recusado.v1` | suite 02, 05 |
+| `pagamento.recusado.v1` | suite 02, 05, 08 |
 
 No SDK há `IntegrationEventNamesTests` que falha se alguém renomear acidentalmente um `EntityName`.
 
@@ -120,3 +134,4 @@ No SDK há `IntegrationEventNamesTests` que falha se alguém renomear acidentalm
 - [Versionamento de contratos](Versionamento-de-contratos)
 - [SDK — Visão dos 6 pacotes](SDK-Visao-dos-6-pacotes)
 - [Idempotência cross-service](Idempotencia-cross-service)
+- [Fluxo — Cancelamento em aguardando pagamento](Fluxo-Cancelamento-em-aguardando-pagamento)
