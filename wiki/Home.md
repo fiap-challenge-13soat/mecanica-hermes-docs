@@ -56,7 +56,7 @@ A Wiki está organizada em 13 seções (veja o menu lateral). As mais consultada
 - 🏛️ **[Arquitetura](Arquitetura)** — visão C4 do sistema e padrões transversais (Clean Architecture, SAGA, Outbox, State Pattern).
 - 🔁 **[Fluxos de negócio](Fluxo-Caminho-feliz)** — os 8 cenários cobertos pela suíte E2E, descritos passo a passo.
 - 📂 **[Repositórios](Repositorios)** — os 9 repos do ecossistema, seus papéis e como se conectam.
-- 📨 **[Catálogo de eventos](Catalogo-de-eventos)** — os 7 contratos `.v1` que circulam no RabbitMQ.
+- 📨 **[Catálogo de eventos](Catalogo-de-eventos)** — os 8 contratos `.v1` que circulam no RabbitMQ.
 - 🚨 **[Runbook macro](Runbook-macro)** — triagem inicial para incidentes cross-service.
 
 ## Status do projeto
@@ -74,4 +74,4 @@ _Cobertura mínima exigida pelo CI: **≥ 80%** de linhas em todos os serviços 
 
 Esta Wiki é mantida em arquivos Markdown versionados no repositório [`mecanica-hermes-docs`](https://github.com/fiap-challenge-13soat/mecanica-hermes-docs), seguindo o **[plano editorial](https://github.com/fiap-challenge-13soat/mecanica-hermes-docs/blob/main/WIKI-PLAN.md)**. Mudanças passam por Pull Request com revisão.
 
-> **Última atualização:** 2026-05-18
+> **Última atualização:** 2026-05-19

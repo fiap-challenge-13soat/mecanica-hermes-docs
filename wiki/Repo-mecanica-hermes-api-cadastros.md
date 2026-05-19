@@ -1,10 +1,10 @@
 # Repo: `mecanica-hermes-api-cadastros`
 
 > **Rótulo:** Referência
-> **Papel em uma frase:** Cadastros de Clientes e Produtos + webhook HMAC de aprovação/rejeição de orçamento + endpoint M2M consumido por Pagamentos.
+> **Papel em uma frase:** Cadastros de Clientes e Produtos + webhook HMAC de aprovação/rejeição de orçamento + endpoint M2M consumido por OS e Pagamentos.
 > **Stack:** .NET 10, ASP.NET Core, PostgreSQL 18, RabbitMQ, MailKit, EF Core 10
 > **Categoria:** Domínio
-> **Última revisão:** 2026-05-18
+> **Última revisão:** 2026-05-19
 
 ## Resumo
 
@@ -14,6 +14,8 @@ Serviço **reativo** (sem SAGA própria). Dois agregados raiz:
 - **`Produto`** — catálogo de peças/serviços.
 
 Guarda o **webhook link** de orçamento (token aleatório, expira em 7 dias) e implementa o handler do webhook com HMAC + dedup. Tem Outbox transacional próprio para os eventos do webhook.
+
+A imagem é publicada no Docker Hub (`mechermes/mecanica-hermes-api-cadastros:latest`) a cada merge em `main` pelo workflow `Build and Publish Docker Image`. O `docker-compose` da stack inteira do ecossistema mora no repo [`mecanica-hermes-tests-e2e`](Repo-mecanica-hermes-tests-e2e).
 
 ## Como se relaciona com o resto
 
@@ -28,12 +30,15 @@ Guarda o **webhook link** de orçamento (token aleatório, expira em 7 dias) e i
 - **Outbox transacional** para garantir entrega do evento `orcamento-aprovado/rejeitado` à OS.
 - **BaseDomain paralelo ao SDK** — divergente para acomodar soft delete (Tier 2).
 - **`AdminOrM2MScope`** habilita chamada M2M com `servico-scope`.
+- **SDK compartilhado v1.1.0** consumido via GitHub Packages.
+- **CI** usa `GITHUB_TOKEN` como **BuildKit secret** no Dockerfile (sem expor o token em layers da imagem).
+- **MEDIATR__LICENSEKEY** e **PACKAGES_TOKEN** documentados como secrets necessários para o pipeline.
 
 ## Onde aprofundar
 
 | Documento | Para quê |
 |---|---|
-| [README.md](https://github.com/fiap-challenge-13soat/mecanica-hermes-api-cadastros/blob/main/README.md) | Visão geral |
+| [README.md](https://github.com/fiap-challenge-13soat/mecanica-hermes-api-cadastros/blob/main/README.md) | Visão geral, docker-compose |
 | [CLAUDE.md](https://github.com/fiap-challenge-13soat/mecanica-hermes-api-cadastros/blob/main/CLAUDE.md) | Arquitetura interna |
 | [docs/architecture.md](https://github.com/fiap-challenge-13soat/mecanica-hermes-api-cadastros/blob/main/docs/architecture.md) | Camadas |
 | [docs/messaging.md](https://github.com/fiap-challenge-13soat/mecanica-hermes-api-cadastros/blob/main/docs/messaging.md) | Eventos + webhook flow |

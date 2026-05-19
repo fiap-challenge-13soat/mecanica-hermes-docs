@@ -4,16 +4,18 @@
 > **Papel em uma frase:** Orquestrador principal — state machine da Ordem de Serviço, com SAGA MassTransit e Outbox transacional.
 > **Stack:** .NET 10, ASP.NET Core, PostgreSQL 16, RabbitMQ, MongoDB (saga), MassTransit 8, EF Core 10
 > **Categoria:** Domínio
-> **Última revisão:** 2026-05-18
+> **Última revisão:** 2026-05-19
 
 ## Resumo
 
-Serviço **central** do ecossistema. Expõe um único agregado de domínio — `OrdemDeServico` — com state machine de 8 estados + 2 terminais. Todos os comandos de mutação são **assíncronos** (`202 Accepted`) e passam pela SAGA do MassTransit.
+Serviço **central** do ecossistema. Expõe um único agregado de domínio — `OrdemDeServico` — com state machine de 8 estados + 2 terminais (`Cancelada`, `Rejeitada`). Todos os comandos de mutação são **assíncronos** (`202 Accepted`) e passam pela SAGA do MassTransit.
+
+A imagem é publicada no Docker Hub (`mechermes/mecanica-hermes-api-ordem-servico:latest`) a cada merge em `main` pelo workflow `Build and Publish Docker Image`. O `docker-compose` da stack inteira do ecossistema mora no repo [`mecanica-hermes-tests-e2e`](Repo-mecanica-hermes-tests-e2e).
 
 ## Como se relaciona com o resto
 
 - **Consome eventos** de Cadastros (`orcamento-aprovado/rejeitado-pelo-cliente.v1`) e de Pagamentos (`link-pagamento-gerado.v1`, `pagamento.confirmado/recusado.v1`).
-- **Publica eventos** para Cadastros (`ordem-de-servico.aguardando-aprovacao.v1`) e Pagamentos (`ordem-de-servico.aguardando-pagamento.v1`).
+- **Publica eventos** para Cadastros (`ordem-de-servico.aguardando-aprovacao.v1`) e Pagamentos (`ordem-de-servico.aguardando-pagamento.v1`, `ordem-de-servico.cancelada.v1`).
 - **Chama HTTP M2M** em Cadastros para `GET /api/clientes/{id}`.
 
 Ver [Catálogo de eventos](Catalogo-de-eventos).
@@ -21,17 +23,19 @@ Ver [Catálogo de eventos](Catalogo-de-eventos).
 ## Pontos-chave
 
 - **State Pattern** — cada status é uma classe (ver [State Pattern](State-Pattern)).
-- **SAGA principal do ecossistema** — 1 operação em voo por `OrdemDeServicoId`.
-- **Outbox transacional** em Postgres com `SELECT ... FOR UPDATE SKIP LOCKED` para multi-instância.
-- **Idempotência cross-service** em 4 consumers de integração.
+- **SAGA principal do ecossistema** — 1 operação em voo por `OrdemDeServicoId`; `OperationTimeoutDelay` configurável via env var.
+- **Outbox transacional** em Postgres com `SELECT ... FOR UPDATE SKIP LOCKED` para multi-instância; `UnitOfWork` registrado como `Scoped`.
+- **Idempotência cross-service** em 4 consumers de integração; serializador BSON de `Guid` ajustado.
+- **Publisher cross-service** `OrdemCanceladaIntegrationPublisher` notifica Pagamentos quando uma OS é cancelada em `AguardandoPagamento`.
 - **DLQ observability** via `MessagingFaultObserver`.
-- **Endpoints retornam 202** — cliente pola para ver resultado.
+- **SDK compartilhado v1.1.0** consumido via GitHub Packages.
+- **Endpoints retornam 202** — cliente pola para ver resultado. Endpoints `PATCH /aprovar` e `/rejeitar` removidos (aprovação/rejeição agora só via webhook de Cadastros).
 
 ## Onde aprofundar
 
 | Documento | Para quê |
 |---|---|
-| [README.md](https://github.com/fiap-challenge-13soat/mecanica-hermes-api-ordem-servico/blob/main/README.md) | Visão geral, endpoints |
+| [README.md](https://github.com/fiap-challenge-13soat/mecanica-hermes-api-ordem-servico/blob/main/README.md) | Visão geral, endpoints, docker-compose |
 | [CLAUDE.md](https://github.com/fiap-challenge-13soat/mecanica-hermes-api-ordem-servico/blob/main/CLAUDE.md) | Arquitetura interna detalhada |
 | [docs/architecture.md](https://github.com/fiap-challenge-13soat/mecanica-hermes-api-ordem-servico/blob/main/docs/architecture.md) | Camadas e padrões |
 | [docs/service-order-flow.md](https://github.com/fiap-challenge-13soat/mecanica-hermes-api-ordem-servico/blob/main/docs/service-order-flow.md) | State machine completa |
@@ -59,3 +63,4 @@ Base: `/api/ordens-de-servico`. Detalhes em [API pública](API-publica).
 - [Runbook — Ordem de Serviço](Runbook-Ordem-de-Servico)
 - [Componentes por serviço](Componentes-por-servico)
 - [Domínio de negócio](Dominio-de-negocio)
+- [Fluxo — Cancelamento em aguardando pagamento](Fluxo-Cancelamento-em-aguardando-pagamento)

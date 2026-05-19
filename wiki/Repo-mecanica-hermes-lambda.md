@@ -4,7 +4,7 @@
 > **Papel em uma frase:** AWS Lambda que autentica o cliente por CPF, gera um JWT via Cognito Client Credentials e envia por e-mail.
 > **Stack:** .NET 10, AWS Lambda, Npgsql, MailKit, AWS Secrets Manager SDK
 > **Categoria:** Infraestrutura (componente do API Gateway)
-> **Última revisão:** 2026-05-18
+> **Última revisão:** 2026-05-19
 
 ## Resumo
 
@@ -19,7 +19,7 @@ A única função Lambda do projeto, chamada `CognitoTokenLambda`. É a porta de
 ## Como se relaciona com o resto
 
 - **Depende de:** RDS de Cadastros (consulta de cliente), Cognito User Pool, Secrets Manager, SMTP.
-- **É invocada por:** API Gateway HTTP — rota `/oauth2/token`.
+- **É invocada por:** API Gateway HTTP — rota `/oauth2/token` (a permissão Lambda↔API Gateway é gerenciada pelo workflow `Deploy - Lambda Function`).
 
 ## Pontos-chave
 
@@ -28,6 +28,7 @@ A única função Lambda do projeto, chamada `CognitoTokenLambda`. É a porta de
 - **HttpClient e SDK Cognito estáticos** (reutilizados entre invocações quentes).
 - **Secret consolidado** — client_id, client_secret, domain, scope + senha do RDS no mesmo Secret.
 - **CPF mascarado** em logs (`***3061`).
+- **Configuração automática de permissões do API Gateway** — o deploy adiciona/atualiza a `lambda:InvokeFunction` policy para o API Gateway invocar a Lambda.
 
 ## Onde aprofundar
 
@@ -48,9 +49,10 @@ dotnet lambda deploy-function mechermes-prd-cognito-token-lambda \
   --function-role arn:aws:iam::<account>:role/LabRole
 ```
 
-Via GitHub Actions: workflow `Deploy - Lambda Function` (input `environment`).
+Via GitHub Actions: workflows `Deploy - Lambda Function` e `Destroy - Lambda Function` (input `environment`).
 
 ## Veja também
 
 - [Lambda CognitoToken](Lambda-CognitoToken) — fluxo detalhado e env vars
 - [Autenticação Cognito + JWT](Autenticacao-Cognito-JWT)
+- [API Gateway + VPC Link](API-Gateway-VPC-Link)

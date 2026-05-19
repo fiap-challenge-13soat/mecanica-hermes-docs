@@ -20,7 +20,7 @@ A Wiki nativa do GitHub é um repositório Git separado (`<repo>.wiki.git`), mas
 
 > 📖 **https://github.com/fiap-challenge-13soat/mecanica-hermes-docs/wiki**
 
-## Os 9 reposit ´rios do ecossistema
+## Os 9 repositórios do ecossistema
 
 | Repositório | Papel |
 |---|---|
