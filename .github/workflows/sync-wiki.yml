@@ -1,0 +1,48 @@
+name: Sync Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      - '.github/workflows/sync-wiki.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: sync-wiki
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout docs repo
+        uses: actions/checkout@v4
+        with:
+          path: docs
+
+      - name: Clone wiki repo
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${WIKI_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki-repo
+
+      - name: Sync wiki content
+        run: |
+          set -euo pipefail
+          cd wiki-repo
+          find . -maxdepth 1 -type f -name '*.md' -delete
+          cp ../docs/wiki/*.md ./
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No wiki changes to publish."
+            exit 0
+          fi
+          SHA="${GITHUB_SHA::7}"
+          git commit -m "sync: wiki from main @ ${SHA}"
+          git push origin HEAD

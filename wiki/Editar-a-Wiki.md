@@ -1,8 +1,8 @@
 # Editar a Wiki
 
 > **Rótulo:** How-to
-> **TL;DR:** A Wiki vive como arquivos Markdown na pasta `wiki/` do repositório `mecanica-hermes-docs`. Mudanças via PR para `main`. Sincronização com a Wiki nativa do GitHub é manual (TODO automatizar).
-> **Última revisão:** 2026-05-18
+> **TL;DR:** A Wiki vive como arquivos Markdown na pasta `wiki/` do repositório `mecanica-hermes-docs`. Mudanças via PR para `main`. A sincronização com a Wiki nativa do GitHub é **automática** via GitHub Actions a cada merge em `main`.
+> **Última revisão:** 2026-05-19
 
 ## Workflow
 
@@ -12,17 +12,25 @@
 4. **PR** para `main`.
 5. **Review** — outro membro do time.
 6. **Merge.**
-7. **Sync para Wiki nativa** (manual, por enquanto):
+7. **Sync para Wiki nativa** — automático. Após o merge em `main`, o workflow [`.github/workflows/sync-wiki.yml`](https://github.com/fiap-challenge-13soat/mecanica-hermes-docs/blob/main/.github/workflows/sync-wiki.yml) republica todo o conteúdo de `wiki/*.md` na Wiki do GitHub. Também pode ser disparado manualmente em **Actions → Sync Wiki → Run workflow**.
 
-   ```bash
-   git clone https://github.com/fiap-challenge-13soat/mecanica-hermes-docs.wiki.git
-   cd mecanica-hermes-docs.wiki
-   rm -f *.md
-   cp ../mecanica-hermes-docs/wiki/*.md ./
-   git add .
-   git commit -m "sync: wiki content from main"
-   git push origin master
-   ```
+### Configuração inicial (uma vez)
+
+A Wiki precisa estar **habilitada** e ter ao menos uma página inicial criada via UI (caso contrário o repo `.wiki.git` não existe). Por padrão o workflow usa `GITHUB_TOKEN`; se a organização restringir push em wikis, crie um PAT com escopo `repo` e salve como o secret `WIKI_SYNC_TOKEN` no repositório.
+
+### Sync manual (fallback)
+
+Se precisar sincronizar localmente:
+
+```bash
+git clone https://github.com/fiap-challenge-13soat/mecanica-hermes-docs.wiki.git
+cd mecanica-hermes-docs.wiki
+rm -f *.md
+cp ../mecanica-hermes-docs/wiki/*.md ./
+git add .
+git commit -m "sync: wiki content from main"
+git push origin HEAD
+```
 
 ## Convenções
 
