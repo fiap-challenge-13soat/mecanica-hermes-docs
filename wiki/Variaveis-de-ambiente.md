@@ -19,7 +19,7 @@
 |---|---|
 | `ConnectionStrings__DefaultConnection` | Postgres |
 | `MASSTRANSIT__TRANSPORT_SERVICE` | `AmazonMq` (default), `RabbitMq` (dev local) ou `None` (in-memory para testes). |
-| `MASSTRANSIT__CONNECTION_STRING` | AmazonMq: `amqps://user:pass@b-xxx.mq.<region>.amazonaws.com:5671`. RabbitMq: `amqp://guest:guest@rabbitmq:5672/`. |
+| `MASSTRANSIT__CONNECTION_STRING` | AmazonMq: `amqps://<user>:<password>@<broker-id>.mq.<region>.amazonaws.com:5671`. RabbitMq: `amqp://<user>:<password>@<host>:5672/`. |
 | `Mongo__ConnectionString` | Mongo para SAGA state |
 | `AUTH__AUTHORITY` | URL do Cognito |
 | `AUTH__ISSUER` | URL do Cognito issuer |
