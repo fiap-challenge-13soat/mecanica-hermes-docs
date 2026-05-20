@@ -18,7 +18,8 @@
 | Variável | Descrição |
 |---|---|
 | `ConnectionStrings__DefaultConnection` | Postgres |
-| `MassTransit__RabbitMq__Host` | `amqp://...:5672` |
+| `MASSTRANSIT__TRANSPORT_SERVICE` | `AmazonMq` (default), `RabbitMq` (dev local) ou `None` (in-memory para testes). |
+| `MASSTRANSIT__CONNECTION_STRING` | AmazonMq: `amqps://<user>:<password>@<broker-id>.mq.<region>.amazonaws.com:5671`. RabbitMq: `amqp://<user>:<password>@<host>:5672/`. |
 | `Mongo__ConnectionString` | Mongo para SAGA state |
 | `AUTH__AUTHORITY` | URL do Cognito |
 | `AUTH__ISSUER` | URL do Cognito issuer |
@@ -38,7 +39,8 @@
 | Variável | Descrição |
 |---|---|
 | `Mongo__ConnectionString` | `mongodb://...:27017/?replicaSet=rs0` |
-| `MassTransit__RabbitMq__Host` | Rabbit |
+| `MASSTRANSIT__TRANSPORT_SERVICE` | `AmazonMq` (default), `RabbitMq` ou `None`. |
+| `MASSTRANSIT__CONNECTION_STRING` | AmazonMq: `amqps://...`. RabbitMq: `amqp://...`. |
 | `AUTH__AUTHORITY`, `AUTH__ISSUER` | Cognito |
 | `MERCADO_PAGO__BASE_URL` | URL base do MP (sandbox ou prod) |
 | `MERCADO_PAGO__ACCESS_TOKEN` | Token do MP |
