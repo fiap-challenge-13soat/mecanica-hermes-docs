@@ -1,8 +1,8 @@
-# RabbitMQ
+# RabbitMQ / Amazon MQ
 
 > **Rótulo:** Referência
-> **TL;DR:** RabbitMQ 4.x com plugin `rabbitmq_delayed_message_exchange`. Transport do MassTransit para mensageria entre os 3 serviços.
-> **Última revisão:** 2026-05-18
+> **TL;DR:** RabbitMQ 4.x (com plugin `rabbitmq_delayed_message_exchange`) em dev local; **Amazon MQ for RabbitMQ** (gerenciado AWS, AMQPS porta 5671) em prod/EKS. Mesmo transport MassTransit em ambos — alterna pela env `MASSTRANSIT__TRANSPORT_SERVICE=AmazonMq` (default) ou `RabbitMq`.
+> **Última revisão:** 2026-05-20
 
 ## Plugin obrigatório
 
@@ -40,20 +40,44 @@ DLQ é a fila com sufixo `_error` correspondente.
 
 Ver [Filas, retry, redelivery](Filas-retry-redelivery).
 
-## Em produção
+## Em produção (Amazon MQ for RabbitMQ)
 
-Hoje rodamos o Rabbit como Pod no EKS (StatefulSet com PVC). Alternativas para o futuro:
+Hoje rodamos **Amazon MQ for RabbitMQ** (broker `mechermes-mq`, engine `RabbitMQ 3.13`, instância `mq.m7g.medium`, single-AZ) provisionado via `mecanica-hermes-infra/shared/aws/module-amazonmq.tf`. As credenciais ficam no Secrets Manager (`mechermes-mq-secret`) e são injetadas pelo workflow `mecanica-hermes-k8s/.github/workflows/api-deploy.yml` como secret do Kubernetes (`app-secret`).
 
-- **Amazon MQ for RabbitMQ** (gerenciado, mas o plugin delayed-message **não é suportado** — ver matriz de plugins).
-- **Amazon SQS** — o MassTransit suporta SQS como transport (`MassTransit.AmazonSQS`); precisaria substituir polling agendado por SQS DelaySeconds (máximo 15min, suficiente).
+- **Endpoint AMQPS**: `amqps://mechermes:****@b-xxxx.mq.us-east-1.amazonaws.com:5671` (TLS 1.2 obrigatório).
+- **Heartbeat**: 60s (configurado no host MassTransit — valores menores derrubam conexão sob carga).
+- **Plugin `rabbitmq_delayed_message_exchange`**: **não é suportado** no Amazon MQ. O OS service usa `UseInMemoryScheduler` e pagamentos usa `UseDelayedMessageScheduler` — ambos compatíveis com o broker gerenciado.
+
+Alternativas avaliadas mas não adotadas:
+
+- **Amazon SQS** — o MassTransit suporta SQS como transport (`MassTransit.AmazonSQS`); precisaria substituir polling agendado por SQS DelaySeconds (máximo 15min, suficiente). Empacotado no assembly, mas inativo.
+
+## Toggle dev ↔ prod
+
+A escolha entre RabbitMQ auto-hospedado (dev local) e Amazon MQ (prod) é feita pela env var:
+
+```bash
+# Dev local (docker-compose):
+MASSTRANSIT__TRANSPORT_SERVICE=RabbitMq
+MASSTRANSIT__CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/
+
+# Prod (EKS, default quando env var ausente):
+MASSTRANSIT__TRANSPORT_SERVICE=AmazonMq
+MASSTRANSIT__CONNECTION_STRING=amqps://mechermes:****@b-xxxx.mq.us-east-1.amazonaws.com:5671
+```
+
+Ambos os modos usam o mesmo transport MassTransit RabbitMQ por baixo — a diferença está só na config de TLS e heartbeat.
 
 ## Conexão nos pods
 
+Configurada pelo workflow de deploy (`api-deploy.yml`):
+
 ```bash
-MassTransit__RabbitMq__Host=amqp://guest:guest@rabbitmq:5672
+MASSTRANSIT__TRANSPORT_SERVICE=AmazonMq
+MASSTRANSIT__CONNECTION_STRING=amqps://<user>:<password>@<broker-host>:5671
 ```
 
-O hostname `rabbitmq` resolve pelo Service do Kubernetes.
+Em dev local, o hostname `rabbitmq` resolve pelo Service do Docker Compose.
 
 ## Veja também
 
