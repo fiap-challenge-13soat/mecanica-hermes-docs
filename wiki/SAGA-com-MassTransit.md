@@ -1,8 +1,8 @@
 # SAGA com MassTransit
 
 > **Rótulo:** Explicação
-> **TL;DR:** SAGA serializa operações por chave do agregado. Máximo **1 operação em voo por OS** ou por Pagamento. Retry e redelivery automáticos.
-> **Última revisão:** 2026-05-18
+> **TL;DR:** SAGA serializa operações por chave do agregado. Máximo **1 operação em voo por OS** ou por Pagamento. Retry e redelivery automáticos. **Timeouts agendados** via Quartz (OS) ou InMemoryScheduler (Pagamentos) — não dependem do plugin RabbitMQ delayed-message que o Amazon MQ não suporta.
+> **Última revisão:** 2026-05-20
 
 ## O problema que resolve
 
@@ -53,7 +53,17 @@ Política padrão (configurada em `BusFactoryConfiguratorExtensions.ConfigureCom
 - **Delayed redelivery:** 3 tentativas com backoff exponencial (1m, 5m, 15m).
 - **Total:** até ~21 minutos até cair na DLQ.
 
-A delayed redelivery usa o plugin `rabbitmq_delayed_message_exchange` (por isso a imagem custom do Rabbit).
+A delayed redelivery usa o plugin `rabbitmq_delayed_message_exchange` em dev local (por isso a imagem custom do Rabbit). Em produção (Amazon MQ for RabbitMQ), o plugin **não** é suportado e o redelivery cai pra reentrega imediata ao topo da fila — ver [Filas, retry, redelivery → Plugin em produção](Filas-retry-redelivery#plugin-delayed-message-exchange).
+
+## Scheduler de timeouts (SAGA)
+
+State machines que chamam `.Schedule(...)` precisam de um `IMessageScheduler` no bus. Como o Amazon MQ não suporta o plugin `delayed-message-exchange`, cada serviço escolheu:
+
+- **OS** — Quartz.NET completo. `services.AddQuartz()` + `AddQuartzHostedService` em `ServiceCollectionExtensions` + `cfg.UseMessageScheduler(new Uri("queue:quartz"))` nos factories (RabbitMq e AmazonMq) + `AddQuartzConsumers()` em `ConfigureSaga`. JobStore RAM (não-durável).
+- **Pagamentos** — `cfg.UseInMemoryScheduler()` (extensão fornecida pelo pacote `MassTransit.Quartz` — necessário em compile-time mesmo que não seja Quartz em runtime). Mais leve que Quartz, suficiente porque o polling do Mercado Pago reconcilia o estado se um timeout for perdido.
+- **Cadastros** — sem scheduler (não tem SAGA).
+
+Detalhes em [RabbitMQ / Amazon MQ → Estratégia de scheduler por serviço](RabbitMQ#estratégia-de-scheduler-por-serviço).
 
 ## Quem usa SAGA
 

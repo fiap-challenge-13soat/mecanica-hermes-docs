@@ -46,7 +46,19 @@ Hoje rodamos **Amazon MQ for RabbitMQ** (broker `mechermes-mq`, engine `RabbitMQ
 
 - **Endpoint AMQPS**: `amqps://mechermes:****@b-xxxx.mq.us-east-1.amazonaws.com:5671` (TLS 1.2 obrigatório).
 - **Heartbeat**: 60s (configurado no host MassTransit — valores menores derrubam conexão sob carga).
-- **Plugin `rabbitmq_delayed_message_exchange`**: **não é suportado** no Amazon MQ. O OS service usa `UseInMemoryScheduler` e pagamentos usa `UseDelayedMessageScheduler` — ambos compatíveis com o broker gerenciado.
+- **Plugin `rabbitmq_delayed_message_exchange`**: **não é suportado** no Amazon MQ. Cada serviço resolve isso de forma diferente — ver [Estratégia de scheduler por serviço](#estratégia-de-scheduler-por-serviço) abaixo.
+
+## Estratégia de scheduler por serviço
+
+Como Amazon MQ não suporta o plugin `delayed-message-exchange`, o `UseDelayedMessageScheduler` (que depende dele) não funciona. Cada API faz a sua composição de scheduler no `Infrastructure/MassTransit/Configurations/`:
+
+| Serviço | Estratégia | Por quê |
+|---|---|---|
+| **Ordem de Serviço** | **Quartz.NET** — `services.AddQuartz()` + `AddQuartzHostedService` + `cfg.UseMessageScheduler(new Uri("queue:quartz"))` + `AddQuartzConsumers()` em `ConfigureSaga`. JobStore RAM (default). | A SAGA usa `.Schedule(...)` para `OperationTimeout`. `AddQuartzConsumers` registra `ScheduleMessageConsumer` + `CancelScheduledMessageConsumer` que dependem de `Quartz.ISchedulerFactory` — sem o `services.AddQuartz()` o `QuartzBusObserver` falha no startup do bus. |
+| **Pagamentos** | **`cfg.UseInMemoryScheduler()`** (requer pacote `MassTransit.Quartz` para a extensão estar disponível em compile-time). | A SAGA usa `.Schedule(...)` para `VerificarStatusPagamentoRequest` (polling MP a cada 2min). Em-memória é suficiente porque o polling reconcilia o estado mesmo após restart. |
+| **Cadastros** | **Sem scheduler** — só `UseMessageRetry`. | Serviço puramente reativo (consumers de email + webhook + Outbox como BackgroundService); não tem SAGA com `.Schedule(...)`. |
+
+**Trade-off em ambos OS e Pagamentos**: o RAMJobStore do Quartz / InMemoryScheduler são **não-duráveis** — timeouts agendados são perdidos se o pod morrer. Multi-replica também não coordena timeouts entre instâncias. Para durabilidade real, migrar OS para JobStore ADO.NET no Postgres (TODO em ADR futuro).
 
 Alternativas avaliadas mas não adotadas:
 
