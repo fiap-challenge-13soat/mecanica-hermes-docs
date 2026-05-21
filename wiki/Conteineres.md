@@ -53,9 +53,8 @@ flowchart TB
   Pag <-->|eventos .v1| Rabbit
 
   Pag <-->|HTTP + webhook HMAC| MP
-  Cad -->|HTTP M2M JWT| Cad
-  Pag -.->|GET /api/clientes/{id}| Cad
-  OS -.->|GET /api/clientes/{id}| Cad
+  Pag -.->|"GET /api/clientes/{id} (M2M JWT)"| Cad
+  OS -.->|"GET /api/clientes/{id} (M2M JWT)"| Cad
   Cad -->|e-mails| SMTP
   Pag -->|e-mails| SMTP
 ```

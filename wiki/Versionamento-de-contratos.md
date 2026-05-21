@@ -14,12 +14,12 @@ MassTransit serializa records posicionalmente em alguns transports — adicionar
 
 ```mermaid
 flowchart LR
-  v1[✍️ .v1 publicada] --> dual[⚖️ Producer publica .v1 + .v2]
-  dual --> migrate[📦 Todos os consumers passam a consumir .v2]
-  migrate --> drain[⏳ Drenar fila .v1 < 0]
-  drain --> remove[🗑️ Producer para de publicar .v1]
-  remove --> deprecate[🚫 .v1 marcada [Obsolete] no SDK]
-  deprecate --> next[⚠️ Remoção só no próximo MAJOR do SDK]
+  v1["✍️ .v1 publicada"] --> dual["⚖️ Producer publica .v1 + .v2"]
+  dual --> migrate["📦 Todos os consumers passam a consumir .v2"]
+  migrate --> drain["⏳ Drenar fila .v1 → 0"]
+  drain --> remove["🗑️ Producer para de publicar .v1"]
+  remove --> deprecate["🚫 .v1 marcada [Obsolete] no SDK"]
+  deprecate --> next["⚠️ Remoção só no próximo MAJOR do SDK"]
 ```
 
 ## Passos práticos para evoluir um evento

@@ -8,9 +8,9 @@
 
 ```mermaid
 flowchart LR
-  D[Domain] -.x.-> I[Infrastructure]
-  D -.x.-> A[Application]
-  A -.x.-> I
+  D[Domain] -.-x I[Infrastructure]
+  D -.-x A[Application]
+  A -.-x I
   AP[Api] --> all[todos]
 ```
 
